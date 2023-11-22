@@ -1,3 +1,5 @@
+import download from "downloadjs";
+import { PDFDocument, rgb } from "pdf-lib";
 import React, { useReducer, useEffect } from "react";
 
 const initialState = {
@@ -49,14 +51,38 @@ export const KeyForm = () => {
 
   const handleSubmit = (event) => {
     event.preventDefault(); // Prevents the default form submit action
-    createPdf();
+    createPdf(state);
   };
 
-  const createPdf = () => {
-    // Implement your PDF creation logic here
-    console.log("PDF is being created...");
-    console.log(state);
-  };
+  async function createPdf({ year, make, model }) {
+    // Create a new PDFDocument
+    const pdfDoc = await PDFDocument.create();
+
+    // Convert inches to points (1 inch = 72 points)
+    const pageWidth = 2.25 * 72;
+    const pageHeight = 3 * 72;
+
+    // Add a page to the document with the specified size
+    const page = pdfDoc.addPage([pageWidth, pageHeight]);
+
+    // Define text and coordinates
+    const texts = [
+      { text: `${year}`, x: 10, y: pageHeight - 30 }, // Adjust x and y as needed
+      { text: `${make}`, x: 10, y: pageHeight - 50 },
+      { text: `${model}`, x: 10, y: pageHeight - 70 },
+    ];
+
+    // Add texts to the page
+    texts.forEach(({ text, x, y }) => {
+      page.drawText(text, { x, y, size: 12, color: rgb(0, 0, 0) });
+    });
+
+    // Serialize the PDFDocument to bytes
+    const pdfBytes = await pdfDoc.save();
+    download(pdfBytes, "vehicle-details.pdf", "application/pdf");
+    // Code to save pdfBytes to a file or return as needed
+    // Example: fs.writeFileSync('output.pdf', pdfBytes);
+  }
 
   return (
     <div className=" bg-fuchsia-500 px-4 py-2 container mx-auto ">
