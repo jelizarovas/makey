@@ -161,12 +161,27 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
         const xPos = margin + x * rectWidth;
         const yPos =
           pageHeight - margin - rectHeight - y * (rectHeight + verticalPadding);
-        page.drawImage(image, {
-          x: xPos,
-          y: yPos,
-          width: rectWidth,
-          height: rectHeight,
-        });
+
+        if (data?.includeLabel) {
+          page.drawImage(image, {
+            x: xPos,
+            y: yPos,
+            width: rectWidth,
+            height: rectHeight,
+          });
+          // } else {
+          // Add number in the center
+          // const fontSize = 12; // Adjust as needed
+          // const text = String(number);
+          // const textWidth = fontSize * 0.6 * text.length; // Approximate text width
+          // const textXPos = xPos + rectWidth / 2 - textWidth / 2;
+          // const textYPos = yPos + rectHeight / 2 - fontSize / 2;
+          // page.drawText(text, {
+          //   x: textXPos,
+          //   y: textYPos,
+          //   size: fontSize,
+          // });
+        }
         // Draw rectangle
         page.drawRectangle({
           x: xPos,
@@ -181,35 +196,24 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
         //   x: xPos,
         //   y: yPos,
         // });
+        if (data?.includeFields) {
+          fieldArray.forEach((field) => {
+            // Convert to PDF coordinates
+            const { xPdf, yPdf, widthPdf, heightPdf } = convertToPdfCoordinates(
+              field.position.x,
+              field.position.y,
+              field.size.width,
+              field.size.height
+            );
 
-        fieldArray.forEach((field) => {
-          // Convert to PDF coordinates
-          const { xPdf, yPdf, widthPdf, heightPdf } = convertToPdfCoordinates(
-            field.position.x,
-            field.position.y,
-            field.size.width,
-            field.size.height
-          );
-
-          page.drawText(data[field.id] || field.text, {
-            x: xPos + xPdf,
-            y: yPos + rectHeight - yPdf - margin,
-            size: field.fontSize * 0.75,
-            // Adjust text alignment as needed
+            page.drawText(data[field.id] || field.text, {
+              x: xPos + xPdf,
+              y: yPos + rectHeight - yPdf - margin,
+              size: field.fontSize * 0.75,
+              // Adjust text alignment as needed
+            });
           });
-        });
-
-        // Add number in the center
-        // const fontSize = 12; // Adjust as needed
-        // const text = String(number);
-        // const textWidth = fontSize * 0.6 * text.length; // Approximate text width
-        // const textXPos = xPos + rectWidth / 2 - textWidth / 2;
-        // const textYPos = yPos + rectHeight / 2 - fontSize / 2;
-        // page.drawText(text, {
-        //   x: textXPos,
-        //   y: textYPos,
-        //   size: fontSize,
-        // });
+        }
 
         number++;
       }
@@ -231,7 +235,7 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
   }
 
   return (
-    <div className=" px-4 py-2 container mx-auto ">
+    <div className=" px-4 py-2  ">
       <form className="flex flex-col space-y-1 w-96 " onSubmit={handleSubmit}>
         <Input
           handleOnChange={handleInputChange}
@@ -306,14 +310,30 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
           value={state.miles}
           placeholder="Miles"
         />
+        <Checkbox
+          label="includeFields"
+          handleOnChange={handleInputChange}
+          name="includeFields"
+          Icon={MdPerson}
+          value={state.includeFields}
+          placeholder="includeFields"
+        />
+        <Checkbox
+          label="includeLabel"
+          handleOnChange={handleInputChange}
+          name="includeLabel"
+          Icon={MdPerson}
+          value={state.includeLabel}
+          placeholder="includeLabel"
+        />
 
         <div className="flex py-4">
-          <button
+          {/* <button
             className="bg-green-700 text-white py-1 rounded text-xs w-36 mx-auto "
             type="submit"
           >
             Submit and Create PDF
-          </button>
+          </button> */}
         </div>
         <div className="flex py-4">
           <button
@@ -388,6 +408,25 @@ const Input = ({
         </div>
       </label>
     </div>
+  );
+};
+
+const Checkbox = ({ name, value = false, label, handleOnChange }) => {
+  const handleChange = (event) => {
+    // Update the state by calling handleOnChange with field name and new value
+    handleOnChange(name, event.target.checked);
+  };
+
+  return (
+    <label>
+      <input
+        type="checkbox"
+        name={name}
+        checked={value}
+        onChange={handleChange}
+      />
+      {label}
+    </label>
   );
 };
 

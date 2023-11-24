@@ -120,13 +120,15 @@ function App() {
   return (
     <>
       <Search onSelect={onSelect} />
-      <KeyForm
-        state={state}
-        dispatch={dispatch}
-        vinData={vinData}
-        setVinData={setVinData}
-      />
-      <TagEditor />
+      <div className="flex container mx-auto flex-col md:flex-row justify-around">
+        <KeyForm
+          state={state}
+          dispatch={dispatch}
+          vinData={vinData}
+          setVinData={setVinData}
+        />
+        <TagEditor state={state} />
+      </div>
       {/* <div className="text-xs overflow-y-scroll h-96 bg-indigo-800 text-white ">
         <ul>
           {hitData &&

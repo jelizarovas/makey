@@ -17,6 +17,33 @@ const DPI = 72; // Use 72 DPI for consistency with the PDF
 const pixelsToInches = (pixels) => pixels / DPI;
 const inchesToPixels = (inches) => inches * DPI;
 
+const restrictToBounds = ({
+  transform,
+  activatorEvent,
+  draggableRect,
+  droppableRects,
+}) => {
+  if (!(activatorEvent instanceof MouseEvent)) return transform;
+
+  const parentRect = droppableRects?.[0]; // Assuming the first droppableRect is your container
+  if (!parentRect) return transform;
+
+  const restrictedX = Math.min(
+    Math.max(transform.x, 0),
+    parentRect.width - draggableRect.width
+  );
+  const restrictedY = Math.min(
+    Math.max(transform.y, 0),
+    parentRect.height - draggableRect.height
+  );
+
+  return {
+    ...transform,
+    x: restrictedX,
+    y: restrictedY,
+  };
+};
+
 const DraggableText = ({
   id,
   text,
@@ -29,19 +56,19 @@ const DraggableText = ({
 }) => {
   const dragHandleRef = useRef(null);
 
-  const draggableProps = useDraggable({ id, node: dragHandleRef });
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id,
+    node: dragHandleRef,
+  });
 
   const containerRef = useRef(null);
   const textRef = useRef(null);
 
   const style = {
-    transform: `translate3d(${
-      position.x + (draggableProps?.transform ? draggableProps?.transform.x : 0)
-    }px, ${
-      position.y + (draggableProps?.transform ? draggableProps?.transform.y : 0)
+    transform: `translate3d(${position.x + (transform ? transform.x : 0)}px, ${
+      position.y + (transform ? transform.y : 0)
     }px, 0)`,
     position: "absolute",
-    // cursor: "grab",
   };
 
   const handleInputChange = (e) => {
@@ -60,7 +87,7 @@ const DraggableText = ({
 
   return (
     <div
-      ref={draggableProps?.setNodeRef}
+      ref={setNodeRef}
       style={style}
       onDragEnd={onDragEnd}
       className="relative group  rounded  custom-border-box  bg-white bg-opacity-20"
@@ -68,16 +95,16 @@ const DraggableText = ({
       <div
         ref={dragHandleRef}
         className="p-2 absolute hidden group-hover:block -right-7 top-0 "
-        {...draggableProps?.listeners}
-        {...draggableProps?.attributes}
+        {...listeners}
+        {...attributes}
       >
         <RxDragHandleDots2 />
       </div>
       <div
         ref={dragHandleRef}
         className="p-2 absolute hidden group-hover:block -left-7 top-0 "
-        {...draggableProps?.listeners}
-        {...draggableProps?.attributes}
+        {...listeners}
+        {...attributes}
       >
         <RxDragHandleDots2 />
       </div>
@@ -101,8 +128,22 @@ const DraggableText = ({
   );
 };
 
-export const TagEditor = () => {
-  const [texts, setTexts] = useState(fieldArray);
+export const TagEditor = ({ state }) => {
+  const [texts, setTexts] = useState(
+    fieldArray.map((field) => ({
+      ...field,
+      text: state?.[field?.id] ? state[field.id] : field.text,
+    }))
+  );
+
+  useEffect(() => {
+    setTexts(
+        fieldArray.map((field) => ({
+          ...field,
+          text: state?.[field.id] || field.text,
+        }))
+      );
+  }, [state])
 
   const handleDragEnd = (event) => {
     const { active, delta } = event;
@@ -153,9 +194,22 @@ export const TagEditor = () => {
   };
 
   return (
-    <div className="bg-indigo-100">
+    <div className="py-10">
       <button onClick={addText}>Add Text</button>
-
+      <button
+        className="ml-10 border rounded border-black p-1 px-2 mb-4"
+        onClick={() => {
+          console.log(state);
+          setTexts(
+            fieldArray.map((field) => ({
+              ...field,
+              text: state?.[field.id] || field.text,
+            }))
+          );
+        }}
+      >
+        Update
+      </button>
       <div
         style={{
           width: "3in",
@@ -164,6 +218,7 @@ export const TagEditor = () => {
           backgroundSize: "cover",
           position: "relative",
         }}
+        className="mx-auto"
       >
         <DndContext
           onDragEnd={handleDragEnd}
@@ -201,8 +256,6 @@ function adjustFontSizeToFitContainer(containerElem, textElem) {
   let fontSize = 10; // Start with a base font size
   const maxWidth = containerElem.clientWidth;
   const maxHeight = containerElem.clientHeight;
-
-  console.log({ maxWidth, maxHeight });
 
   // Increase font size until it overflows the container
   while (fontSize < 350) {
