@@ -117,6 +117,9 @@ function App() {
     dispatch({ type: "SELECT_INVENTORY", payload: newData });
   };
 
+
+  const carDescription = `${state.year} ${state.make} ${state.model} ${state.trim}`
+
   return (
     <>
       <Search onSelect={onSelect} />
@@ -126,8 +129,9 @@ function App() {
           dispatch={dispatch}
           vinData={vinData}
           setVinData={setVinData}
+          carDescription={carDescription}
         />
-        <TagEditor state={state} />
+        <TagEditor state={state} carDescription={carDescription} />
       </div>
       {/* <div className="text-xs overflow-y-scroll h-96 bg-indigo-800 text-white ">
         <ul>

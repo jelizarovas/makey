@@ -27,19 +27,16 @@ const fetchVINData = (vin, updateData, setRawVinData) => {
         model: results.find((r) => r.Variable === "Model")?.Value,
         trim: results.find((r) => r.Variable === "Trim")?.Value,
         body: results.find((r) => r.Variable === "Body Class")?.Value,
-        seatRows: results.find((r) => r.Variable === "Number of Seat Rows")
-          ?.Value,
+        seatRows: results.find((r) => r.Variable === "Number of Seat Rows")?.Value,
         driveType: results.find((r) => r.Variable === "Drive Type")?.Value,
-        displacementL: results.find((r) => r.Variable === "Displacement (L)")
-          ?.Value,
-        horsePower: results.find((r) => r.Variable === "Engine Brake (hp) From")
-          ?.Value,
+        displacementL: results.find((r) => r.Variable === "Displacement (L)")?.Value,
+        horsePower: results.find((r) => r.Variable === "Engine Brake (hp) From")?.Value,
       };
       updateData(decodedData);
     });
 };
 
-export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
+export const KeyForm = ({ state, dispatch, vinData, carDescription, setVinData }) => {
   const handleInputChange = (field, value) => {
     dispatch({
       type: "SET_FIELD",
@@ -50,11 +47,7 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
 
   React.useEffect(() => {
     if (state.vin.length === 17) {
-      fetchVINData(
-        state.vin,
-        (decodedData) => dispatch({ type: "DECODE_VIN", payload: decodedData }),
-        setVinData
-      );
+      fetchVINData(state.vin, (decodedData) => dispatch({ type: "DECODE_VIN", payload: decodedData }), setVinData);
     }
   }, [state.vin]);
 
@@ -62,9 +55,7 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
     // event.preventDefault(); // Prevent the default paste action
 
     // Get the pasted text from the clipboard
-    const pastedText = (event.clipboardData || window.clipboardData).getData(
-      "text"
-    );
+    const pastedText = (event.clipboardData || window.clipboardData).getData("text");
     const pastedVinTrimmed = pastedText.trim();
 
     // Check if the trimmed value length is 17
@@ -88,34 +79,64 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
   };
 
   async function loadImage(pdfDoc) {
-    const imageUrl = "/makey/tag.jpg"; // Adjust the path if necessary
+    const imageUrl = "/makey/consecutag.jpg"; // Adjust the path if necessary
     const imageBytes = await fetch(imageUrl).then((res) => res.arrayBuffer());
     const image = await pdfDoc.embedJpg(imageBytes); // Use embedJpg if your image is a JPEG
     return image;
   }
 
-  async function createPdf({ year, make, model }) {
+  async function createPdf(data) {
     // Create a new PDFDocument
     const pdfDoc = await PDFDocument.create();
+    const image = await loadImage(pdfDoc);
 
     // Convert inches to points (1 inch = 72 points)
-    const pageWidth = 2.25 * 72;
-    const pageHeight = 3 * 72;
+    const pageWidth = 2 * 3 * 72;
+    const pageHeight = 2 * 3 * 72; //432
+    // const pageWidth = 2.25 * 72;
+    // const pageHeight = 3 * 72;
 
     // Add a page to the document with the specified size
     const page = pdfDoc.addPage([pageWidth, pageHeight]);
 
     // Define text and coordinates
-    const texts = [
-      { text: `${year}`, x: 10, y: pageHeight - 30 }, // Adjust x and y as needed
-      { text: `${make}`, x: 10, y: pageHeight - 50 },
-      { text: `${model}`, x: 10, y: pageHeight - 70 },
-    ];
+    // const texts = [
+    //   { text: `${year}`, x: 10, y: pageHeight - 30 }, // Adjust x and y as needed
+    //   { text: `${make}`, x: 10, y: pageHeight - 50 },
+    //   { text: `${model}`, x: 10, y: pageHeight - 70 },
+    // ];
 
-    // Add texts to the page
-    texts.forEach(({ text, x, y }) => {
-      page.drawText(text, { x, y, size: 12, color: rgb(0, 0, 0) });
-    });
+    // // Add texts to the page
+    // texts.forEach(({ text, x, y }) => {
+    //   page.drawText(text, { x, y, size: 12, color: rgb(0, 0, 0) });
+    // });
+
+    if (data?.includeLabel) {
+      page.drawImage(image, {
+        x: 0,
+        y: 0,
+        width: pageWidth,
+        height: pageHeight,
+      });
+    }
+    if (data?.includeFields) {
+      fieldArray.forEach((field) => {
+        // Convert to PDF coordinates
+        const { xPdf, yPdf, widthPdf, heightPdf } = convertToPdfCoordinates(
+          field.position.x,
+          field.position.y,
+          field.size.width,
+          field.size.height
+        );
+
+        page.drawText(data[field.id] || field.text, {
+          x: xPdf,
+          y: pageHeight - yPdf - heightPdf * 0.75,
+          size: field.fontSize * 0.75,
+          // Adjust text alignment as needed
+        });
+      });
+    }
 
     // Serialize the PDFDocument to bytes
     const pdfBytes = await pdfDoc.save();
@@ -147,9 +168,7 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
 
     // Calculate the number of rectangles that can fit within the margins and padding
     const rectsPerRow = Math.floor((pageWidth - 2 * margin) / rectWidth);
-    const rectsPerColumn = Math.floor(
-      (pageHeight - 2 * margin) / (rectHeight + verticalPadding)
-    );
+    const rectsPerColumn = Math.floor((pageHeight - 2 * margin) / (rectHeight + verticalPadding));
 
     // Add a page
     const page = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -159,8 +178,7 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
     for (let y = 0; y < rectsPerColumn; y++) {
       for (let x = 0; x < rectsPerRow; x++) {
         const xPos = margin + x * rectWidth;
-        const yPos =
-          pageHeight - margin - rectHeight - y * (rectHeight + verticalPadding);
+        const yPos = pageHeight - margin - rectHeight - y * (rectHeight + verticalPadding);
 
         if (data?.includeLabel) {
           page.drawImage(image, {
@@ -327,7 +345,11 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
           placeholder="includeLabel"
         />
 
+        {/* <div><pre>
+  {JSON.stringify(state,null,2)}
+  </pre></div> */}
         <div className="flex py-4">
+          {carDescription.toString()}
           {/* <button
             className="bg-green-700 text-white py-1 rounded text-xs w-36 mx-auto "
             type="submit"
@@ -337,7 +359,7 @@ export const KeyForm = ({ state, dispatch, vinData, setVinData }) => {
         </div>
         <div className="flex py-4">
           <button
-            onClick={() => createPdfWithRectangles(state)}
+            onClick={() => createPdf({ carDescription, ...state })}
             className="bg-blue-700 text-white py-1 rounded text-xs w-36 mx-auto "
             type="button"
           >
@@ -371,9 +393,7 @@ const Input = ({
   };
 
   return (
-    <div
-      className={`group focus-within:text-indigo-900 ${containerClassNames}`}
-    >
+    <div className={`group focus-within:text-indigo-900 ${containerClassNames}`}>
       <label className="flex">
         <div className="flex items-center">
           <span className="text-xs px-2 upper w-32 text-right">{label}</span>
@@ -419,12 +439,7 @@ const Checkbox = ({ name, value = false, label, handleOnChange }) => {
 
   return (
     <label>
-      <input
-        type="checkbox"
-        name={name}
-        checked={value}
-        onChange={handleChange}
-      />
+      <input type="checkbox" name={name} checked={value} onChange={handleChange} />
       {label}
     </label>
   );
@@ -433,10 +448,10 @@ const Checkbox = ({ name, value = false, label, handleOnChange }) => {
 export const fieldArray = [
   {
     id: "stock",
-    text: "RH707039",
+    text: "RB003953",
     position: {
-      x: 12.66662073135376,
-      y: 61.3333740234375,
+      x: 12.666694754791251,
+      y: 345.3333435058594,
     },
     size: {
       width: 100,
@@ -445,11 +460,11 @@ export const fieldArray = [
     fontSize: 19,
   },
   {
-    id: "keyNumber",
+    id: "keyNumber1",
     text: "1",
     position: {
-      x: 15.333328247070312,
-      y: 21.333328247070312,
+      x: 15.33331525878907,
+      y: 306.00001525878906,
     },
     size: {
       width: 20,
@@ -461,8 +476,8 @@ export const fieldArray = [
     id: "year",
     text: "2024",
     position: {
-      x: 41.333343505859375,
-      y: 89.33332824707031,
+      x: 41.33333051757813,
+      y: 368.6666717529297,
     },
     size: {
       width: 85,
@@ -472,10 +487,10 @@ export const fieldArray = [
   },
   {
     id: "make",
-    text: "Honda",
+    text: "HONDA",
     position: {
-      x: 36.66667175292969,
-      y: 112,
+      x: 36.66662370605468,
+      y: 390.66668701171875,
     },
     size: {
       width: 78,
@@ -485,10 +500,10 @@ export const fieldArray = [
   },
   {
     id: "model",
-    text: "CR-V",
+    text: "Pilot",
     position: {
-      x: 41.33332824707031,
-      y: 137.33334350585938,
+      x: 41.33331525878907,
+      y: 420,
     },
     size: {
       width: 79,
@@ -498,10 +513,10 @@ export const fieldArray = [
   },
   {
     id: "trim",
-    text: "EX-L",
+    text: "ELITE",
     position: {
-      x: 37.333343505859375,
-      y: 162.00001525878906,
+      x: 37.33333051757813,
+      y: 445.33335876464844,
     },
     size: {
       width: 81,
@@ -511,10 +526,10 @@ export const fieldArray = [
   },
   {
     id: "extColor",
-    text: "Canyon River Blue",
+    text: "Nh-883pv",
     position: {
-      x: 46.66667175292969,
-      y: 182.6666717529297,
+      x: 46.66662370605468,
+      y: 465.3330535888672,
     },
     size: {
       width: 78,
@@ -522,4 +537,215 @@ export const fieldArray = [
     },
     fontSize: 9,
   },
+  {
+    id: "keyNumber2",
+    text: "2",
+    position: {
+      x: 299.33282470703125,
+      y: 306.6666643066406,
+    },
+    size: {
+      width: 34,
+      height: 23,
+    },
+    fontSize: 15,
+  },
+  {
+    id: "stock",
+    text: "RB003953",
+    position: {
+      x: 29.3333740234375,
+      y: 44.666656494140625,
+    },
+    size: {
+      width: 368,
+      height: 146,
+    },
+    fontSize: 83,
+  },
+  {
+    id: "carDescription",
+    text: "2024 Honda Pilot Elite",
+    position: {
+      x: 30.66668701171875,
+      y: 156.66665649414062,
+    },
+    size: {
+      width: 513,
+      height: 49,
+    },
+    fontSize: 32,
+  },
+  {
+    id: "stock",
+    text: "RB003953",
+    position: {
+      x: 292.6666259765625,
+      y: 346.0000305175781,
+    },
+    size: {
+      width: 109,
+      height: 29,
+    },
+    fontSize: 19,
+  },
+  {
+    id: "year",
+    text: "2024",
+    position: {
+      x: 329.3333740234375,
+      y: 370.66668701171875,
+    },
+    size: {
+      width: 80,
+      height: 20,
+    },
+    fontSize: 13,
+  },
+  {
+    id: "make",
+    text: "HONDA",
+    position: {
+      x: 323.33331298828125,
+      y: 392.66668701171875,
+    },
+    size: {
+      width: 80,
+      height: 20,
+    },
+    fontSize: 13,
+  },
+  {
+    id: "model",
+    text: "Pilot",
+    position: {
+      x: 328.00006103515625,
+      y: 416.66668701171875,
+    },
+    size: {
+      width: 80,
+      height: 20,
+    },
+    fontSize: 13,
+  },
+  {
+    id: "trim",
+    text: "Elite",
+    position: {
+      x: 325.33331298828125,
+      y: 440.66668701171875,
+    },
+    size: {
+      width: 80,
+      height: 20,
+    },
+    fontSize: 13,
+  },
+  {
+    id: "extColor",
+    text: "Nh-883pv",
+    position: {
+      x: 331.33331298828125,
+      y: 466.6666564941406,
+    },
+    size: {
+      width: 80,
+      height: 20,
+    },
+    fontSize: 13,
+  },
 ];
+
+// export const fieldArray = [
+//   {
+//     id: "stock",
+//     text: "RH707039",
+//     position: {
+//       x: 12.66662073135376,
+//       y: 61.3333740234375,
+//     },
+//     size: {
+//       width: 100,
+//       height: 29,
+//     },
+//     fontSize: 19,
+//   },
+//   {
+//     id: "keyNumber",
+//     text: "1",
+//     position: {
+//       x: 15.333328247070312,
+//       y: 21.333328247070312,
+//     },
+//     size: {
+//       width: 20,
+//       height: 26,
+//     },
+//     fontSize: 17,
+//   },
+//   {
+//     id: "year",
+//     text: "2024",
+//     position: {
+//       x: 41.333343505859375,
+//       y: 89.33332824707031,
+//     },
+//     size: {
+//       width: 85,
+//       height: 31,
+//     },
+//     fontSize: 20,
+//   },
+//   {
+//     id: "make",
+//     text: "Honda",
+//     position: {
+//       x: 36.66667175292969,
+//       y: 112,
+//     },
+//     size: {
+//       width: 78,
+//       height: 28,
+//     },
+//     fontSize: 18,
+//   },
+//   {
+//     id: "model",
+//     text: "CR-V",
+//     position: {
+//       x: 41.33332824707031,
+//       y: 137.33334350585938,
+//     },
+//     size: {
+//       width: 79,
+//       height: 25,
+//     },
+//     fontSize: 16,
+//   },
+//   {
+//     id: "trim",
+//     text: "EX-L",
+//     position: {
+//       x: 37.333343505859375,
+//       y: 162.00001525878906,
+//     },
+//     size: {
+//       width: 81,
+//       height: 23,
+//     },
+//     fontSize: 15,
+//   },
+//   {
+//     id: "extColor",
+//     text: "Canyon River Blue",
+//     position: {
+//       x: 46.66667175292969,
+//       y: 182.6666717529297,
+//     },
+//     size: {
+//       width: 78,
+//       height: 27,
+//     },
+//     fontSize: 9,
+//   },
+// ];

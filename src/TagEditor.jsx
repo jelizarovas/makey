@@ -212,9 +212,9 @@ export const TagEditor = ({ state }) => {
       </button>
       <div
         style={{
-          width: "3in",
-          height: "3in",
-          backgroundImage: "url(/makey/tag.jpg)",
+          width: "6in",
+          height: "6in",
+          backgroundImage: "url(/makey/consecutag.jpg)",
           backgroundSize: "cover",
           position: "relative",
         }}
@@ -239,7 +239,7 @@ export const TagEditor = ({ state }) => {
           ))}
         </DndContext>
       </div>
-      {/* <pre className="text-[8px]">{JSON.stringify(texts, null, 2)}</pre> */}
+      <pre className="text-[8px]">{JSON.stringify(texts, null, 2)}</pre>
     </div>
   );
 };
