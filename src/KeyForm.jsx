@@ -357,6 +357,20 @@ export const KeyForm = ({ state, dispatch, vinData, carDescription, setVinData }
             Submit and Create PDF
           </button> */}
         </div>
+
+        <select className="border p-1 rounded border-black px-4">
+          <option>Consecutag</option>
+          <option>Solo Tag</option>
+          <option>Multi Tags Letter</option>
+          <option>2nd Sticker</option>
+        </select>
+          <button
+            onClick={() => {}}
+            className="bg-green-700 text-white py-1 rounded text-xs w-36 mx-auto "
+            type="button"
+          >
+            Add To Batch
+          </button>
         <div className="flex py-4">
           <button
             onClick={() => createPdf({ carDescription, ...state })}

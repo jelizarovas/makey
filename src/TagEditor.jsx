@@ -239,7 +239,7 @@ export const TagEditor = ({ state }) => {
           ))}
         </DndContext>
       </div>
-      <pre className="text-[8px]">{JSON.stringify(texts, null, 2)}</pre>
+      {/* <pre className="text-[8px]">{JSON.stringify(texts, null, 2)}</pre> */}
     </div>
   );
 };

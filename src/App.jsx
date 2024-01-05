@@ -12,6 +12,7 @@ import {
   updateObject,
 } from "./utils";
 import { TagEditor } from "./TagEditor";
+import { Batch } from "./Batch";
 
 const initialState = {
   vin: "",
@@ -124,6 +125,7 @@ function App() {
     <>
       <Search onSelect={onSelect} />
       <div className="flex container mx-auto flex-col md:flex-row justify-around">
+        <Batch />
         <KeyForm
           state={state}
           dispatch={dispatch}
