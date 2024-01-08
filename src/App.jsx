@@ -109,8 +109,17 @@ function reducer(state, action) {
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [batchList, setBatchList] = useState([]);
   const [vinData, setVinData] = useState(null);
   const [hitData, setHitData] = useState(null);
+
+  const addToBatch = (data) => {
+    setBatchList((list) => ([ ...list, data ]));
+  };
+
+  const clearBatch = () => {
+    setBatchList([]);
+  };
 
   const onSelect = (data) => {
     const newData = transformObject(data, hitMap);
@@ -118,20 +127,20 @@ function App() {
     dispatch({ type: "SELECT_INVENTORY", payload: newData });
   };
 
-
-  const carDescription = `${state.year} ${state.make} ${state.model} ${state.trim}`
+  const carDescription = `${state.year} ${state.make} ${state.model} ${state.trim}`;
 
   return (
     <>
       <Search onSelect={onSelect} />
       <div className="flex container mx-auto flex-col md:flex-row justify-around">
-        <Batch />
+        <Batch batchList={batchList} edit={(data) => dispatch({ type: "NEW_VIN", payload: data })} />
         <KeyForm
           state={state}
           dispatch={dispatch}
           vinData={vinData}
           setVinData={setVinData}
           carDescription={carDescription}
+          addToBatch={addToBatch}
         />
         <TagEditor state={state} carDescription={carDescription} />
       </div>

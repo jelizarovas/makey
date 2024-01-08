@@ -36,7 +36,7 @@ const fetchVINData = (vin, updateData, setRawVinData) => {
     });
 };
 
-export const KeyForm = ({ state, dispatch, vinData, carDescription, setVinData }) => {
+export const KeyForm = ({ state, dispatch, vinData, carDescription, setVinData, addToBatch }) => {
   const handleInputChange = (field, value) => {
     dispatch({
       type: "SET_FIELD",
@@ -46,7 +46,7 @@ export const KeyForm = ({ state, dispatch, vinData, carDescription, setVinData }
   };
 
   React.useEffect(() => {
-    if (state.vin.length === 17) {
+    if (state?.vin?.length === 17) {
       fetchVINData(state.vin, (decodedData) => dispatch({ type: "DECODE_VIN", payload: decodedData }), setVinData);
     }
   }, [state.vin]);
@@ -364,13 +364,16 @@ export const KeyForm = ({ state, dispatch, vinData, carDescription, setVinData }
           <option>Multi Tags Letter</option>
           <option>2nd Sticker</option>
         </select>
-          <button
-            onClick={() => {}}
-            className="bg-green-700 text-white py-1 rounded text-xs w-36 mx-auto "
-            type="button"
-          >
-            Add To Batch
-          </button>
+        <button
+          onClick={() => {
+            addToBatch(state);
+            dispatch({ type: "CLEAR" });
+          }}
+          className="bg-green-700 text-white py-1 rounded text-xs w-36 mx-auto "
+          type="button"
+        >
+          Add To Batch
+        </button>
         <div className="flex py-4">
           <button
             onClick={() => createPdf({ carDescription, ...state })}

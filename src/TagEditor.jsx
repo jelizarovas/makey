@@ -1,41 +1,27 @@
 import React, { useEffect, useRef, useState } from "react";
 import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
-import {
-  restrictToVerticalAxis,
-  restrictToWindowEdges,
-  restrictToParentElement,
-} from "@dnd-kit/modifiers";
+import { restrictToVerticalAxis, restrictToWindowEdges, restrictToParentElement } from "@dnd-kit/modifiers";
 
 import { RxDragHandleDots2 } from "react-icons/rx";
 
 import { Resizable, ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
 import { fieldArray } from "./KeyForm";
+import cuid from "cuid";
 
 const DPI = 72; // Use 72 DPI for consistency with the PDF
 
 const pixelsToInches = (pixels) => pixels / DPI;
 const inchesToPixels = (inches) => inches * DPI;
 
-const restrictToBounds = ({
-  transform,
-  activatorEvent,
-  draggableRect,
-  droppableRects,
-}) => {
+const restrictToBounds = ({ transform, activatorEvent, draggableRect, droppableRects }) => {
   if (!(activatorEvent instanceof MouseEvent)) return transform;
 
   const parentRect = droppableRects?.[0]; // Assuming the first droppableRect is your container
   if (!parentRect) return transform;
 
-  const restrictedX = Math.min(
-    Math.max(transform.x, 0),
-    parentRect.width - draggableRect.width
-  );
-  const restrictedY = Math.min(
-    Math.max(transform.y, 0),
-    parentRect.height - draggableRect.height
-  );
+  const restrictedX = Math.min(Math.max(transform.x, 0), parentRect.width - draggableRect.width);
+  const restrictedY = Math.min(Math.max(transform.y, 0), parentRect.height - draggableRect.height);
 
   return {
     ...transform,
@@ -44,16 +30,7 @@ const restrictToBounds = ({
   };
 };
 
-const DraggableText = ({
-  id,
-  text,
-  position,
-  onDragEnd,
-  onTextChange,
-  size,
-  onResize,
-  handleFontSize,
-}) => {
+const DraggableText = ({ id, text, position, onDragEnd, onTextChange, size, onResize, handleFontSize }) => {
   const dragHandleRef = useRef(null);
 
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -77,10 +54,7 @@ const DraggableText = ({
 
   useEffect(() => {
     if (containerRef.current && textRef.current) {
-      const calculatedFontSize = adjustFontSizeToFitContainer(
-        containerRef.current,
-        textRef.current
-      );
+      const calculatedFontSize = adjustFontSizeToFitContainer(containerRef.current, textRef.current);
       handleFontSize(id, calculatedFontSize);
     }
   }, [size, text]);
@@ -130,20 +104,24 @@ const DraggableText = ({
 
 export const TagEditor = ({ state }) => {
   const [texts, setTexts] = useState(
-    fieldArray.map((field) => ({
-      ...field,
-      text: state?.[field?.id] ? state[field.id] : field.text,
-    }))
+    fieldArray.map((field) =>
+      state
+        ? {
+            ...field,
+            text: state?.[field?.id] ? state[field.id] : field.text,
+          }
+        : {}
+    )
   );
 
   useEffect(() => {
     setTexts(
-        fieldArray.map((field) => ({
-          ...field,
-          text: state?.[field.id] || field.text,
-        }))
-      );
-  }, [state])
+      fieldArray.map((field) => ({
+        ...field,
+        text: state?.[field.id] || field.text,
+      }))
+    );
+  }, [state]);
 
   const handleDragEnd = (event) => {
     const { active, delta } = event;
@@ -174,23 +152,15 @@ export const TagEditor = ({ state }) => {
   };
 
   const handleTextChange = (id, newText) => {
-    setTexts(
-      texts.map((text) => (text.id === id ? { ...text, text: newText } : text))
-    );
+    setTexts(texts.map((text) => (text.id === id ? { ...text, text: newText } : text)));
   };
 
   const handleResize = (id, newSize) => {
-    setTexts(
-      texts.map((text) => (text.id === id ? { ...text, size: newSize } : text))
-    );
+    setTexts(texts.map((text) => (text.id === id ? { ...text, size: newSize } : text)));
   };
 
   const handleFontSize = (id, newFontSize) => {
-    setTexts(
-      texts.map((text) =>
-        text.id === id ? { ...text, fontSize: newFontSize } : text
-      )
-    );
+    setTexts(texts.map((text) => (text.id === id ? { ...text, fontSize: newFontSize } : text)));
   };
 
   return (
@@ -261,10 +231,7 @@ function adjustFontSizeToFitContainer(containerElem, textElem) {
   while (fontSize < 350) {
     // Set an upper limit to avoid infinite loops
     measurementSpan.style.fontSize = `${fontSize}px`;
-    if (
-      measurementSpan.scrollWidth > maxWidth ||
-      measurementSpan.scrollHeight > maxHeight
-    ) {
+    if (measurementSpan.scrollWidth > maxWidth || measurementSpan.scrollHeight > maxHeight) {
       textElem.style.fontSize = `${fontSize - 1}px`;
       break;
     }
